@@ -1,0 +1,160 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import signal
+
+# Parámetros
+N = 1000
+fs = N
+realizaciones = 200
+
+snr_db = 10
+
+a_0 = np.sqrt(2)
+omega_0 = fs/4
+df = fs/N
+
+# =========================================================
+# Señal
+# =========================================================
+
+fr = np.random.uniform(-2, 2, realizaciones)
+fr = np.reshape(fr, (1, realizaciones))
+
+omega_1 = omega_0 + fr*df
+f_1 = omega_1
+
+tt = np.arange(0, N)/fs
+tt = np.reshape(tt, (N,1))
+
+s_1 = a_0*np.sin(2*np.pi*tt*f_1)
+
+potencia_senal = a_0**2 / 2
+
+sigma = np.sqrt(potencia_senal/(10**(snr_db/10)))
+
+ruido = np.random.normal(0, sigma, (N, realizaciones))
+
+x_1 = s_1 + ruido
+
+# =========================================================
+# Ventanas
+# =========================================================
+
+rectangular = np.ones(N)
+gaussiana = signal.windows.gaussian(N, std=N/8)
+blackman = signal.windows.blackmanharris(N)
+flattop = signal.windows.flattop(N)
+
+rectangular = np.reshape(rectangular, (N,1))
+gaussiana  = np.reshape(gaussiana,  (N,1))
+blackman   = np.reshape(blackman,   (N,1))
+flattop    = np.reshape(flattop,    (N,1))
+
+# =========================================================
+# Aplicación de ventanas
+# =========================================================
+
+x_rect = x_1 * rectangular
+x_gauss = x_1 * gaussiana
+x_black = x_1 * blackman
+x_flat  = x_1 * flattop
+
+# =========================================================
+# FFT
+# =========================================================
+
+XX_rect = np.fft.fft(x_rect, axis=0)/N
+XX_gauss = np.fft.fft(x_gauss, axis=0)/N
+XX_black = np.fft.fft(x_black, axis=0)/N
+XX_flat  = np.fft.fft(x_flat, axis=0)/N
+
+# =========================================================
+# ESTIMADOR DE AMPLITUD
+# =========================================================
+
+est_rect  = 2*np.abs(XX_rect[250,:])
+est_gauss = 2*np.abs(XX_gauss[250,:])
+est_black = 2*np.abs(XX_black[250,:])
+est_flat  = 2*np.abs(XX_flat[250,:])
+
+plt.figure(figsize=(8,5))
+
+plt.hist(est_rect,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Rectangular')
+
+plt.hist(est_gauss,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Gaussiana')
+
+plt.hist(est_black,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Blackman-Harris')
+
+plt.hist(est_flat,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Flat Top')
+
+plt.grid(True, linestyle=':')
+plt.xlabel('Valor estimado de $a_0$')
+plt.ylabel('Cantidad de ocurrencias')
+plt.title('Histograma estimador amplitud')
+plt.legend()
+plt.tight_layout()
+
+# =========================================================
+# ESTIMADOR DE FRECUENCIA
+# =========================================================
+
+XX_rect_abs  = np.abs(XX_rect[:N//2+1,:])
+XX_gauss_abs = np.abs(XX_gauss[:N//2+1,:])
+XX_black_abs = np.abs(XX_black[:N//2+1,:])
+XX_flat_abs  = np.abs(XX_flat[:N//2+1,:])
+
+freq_rect  = np.argmax(XX_rect_abs, axis=0)
+freq_gauss = np.argmax(XX_gauss_abs, axis=0)
+freq_black = np.argmax(XX_black_abs, axis=0)
+freq_flat  = np.argmax(XX_flat_abs, axis=0)
+
+plt.figure(figsize=(8,5))
+
+plt.hist(freq_rect,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Rectangular')
+
+plt.hist(freq_gauss,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Gaussiana')
+
+plt.hist(freq_black,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Blackman-Harris')
+
+plt.hist(freq_flat,
+         bins=10,
+         alpha=0.4,
+         edgecolor='black',
+         label='Flat Top')
+
+plt.grid(True, linestyle=':')
+plt.xlabel('Valor estimado de $w_0$')
+plt.ylabel('Cantidad de ocurrencias')
+plt.title('Histograma estimador frecuencia')
+plt.legend()
+plt.tight_layout()
+
+plt.show()
