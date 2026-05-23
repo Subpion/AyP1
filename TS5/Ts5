@@ -1,0 +1,109 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import signal as sig
+# Señal
+fs_ecg = 1000
+ecg_one_lead = np.load('ecg_sin_ruido.npy')
+
+# PERIODOGRAMA MODIFICADO
+
+f_perio, dsp_perio = sig.periodogram(
+    ecg_one_lead,
+    fs=fs_ecg,
+    window='flattop',
+    detrend='constant',
+    scaling='density'
+)
+
+
+# Banda ocupada 95%
+
+df_perio = f_perio[1] - f_perio[0]
+
+energia_total_perio = np.sum(dsp_perio) * df_perio
+
+energia_acum_perio = np.cumsum(dsp_perio) * df_perio
+energia_acum_perio /= energia_total_perio
+
+idx_min_perio = np.where(energia_acum_perio >= 0.0)[0][0]
+idx_max_perio = np.where(energia_acum_perio >= 0.95)[0][0]
+
+bw_min_perioa = f_perio[idx_min_perio]
+bw_max_perioa = f_perio[idx_max_perio]
+
+
+# Gráfico
+
+plt.figure(figsize=(10,4))
+
+plt.plot(f_perio, dsp_perio,
+         label='Periodograma modificado')
+
+plt.axvline(bw_min_perioa,color='r',
+            linestyle='--',
+            label=f'f min = {bw_min_perioa:.2f} Hz')
+
+plt.axvline(bw_max_perioa,color='g',
+            linestyle='--',
+            label=f'f max = {bw_max_perioa:.2f} Hz')
+
+plt.xlim(0,40)
+
+plt.xlabel('Frecuencia [Hz]')
+plt.ylabel('PSD')
+
+plt.grid()
+plt.legend()
+
+plt.show()
+
+# WELCH
+
+f_welch, dsp_welch = sig.welch(
+    ecg_one_lead,
+    fs=fs_ecg,
+    window='flattop',
+    nperseg=len(ecg_one_lead)/10,
+    detrend='constant',
+    scaling='density'
+)
+
+# Banda ocupada 95%
+
+df_welch = f_welch[1] - f_welch[0]
+
+energia_total_welch = np.sum(dsp_welch) * df_welch
+
+energia_acum_welch = np.cumsum(dsp_welch) * df_welch
+energia_acum_welch /= energia_total_welch
+
+idx_min_welch = np.where(energia_acum_welch >= 0.0)[0][0]
+idx_max_welch = np.where(energia_acum_welch >= 0.95)[0][0]
+
+bw_min_welcha = f_welch[idx_min_welch]
+bw_max_welcha = f_welch[idx_max_welch]
+
+# Gráfico
+
+plt.figure(figsize=(10,4))
+
+plt.plot(f_welch, dsp_welch,
+         label='Welch')
+
+plt.axvline(bw_min_welcha,color='r',
+            linestyle='--',
+            label=f'f min = {bw_min_welcha:.2f} Hz')
+
+plt.axvline(bw_max_welcha,color='g',
+            linestyle='--',
+            label=f'f max = {bw_max_welcha:.2f} Hz')
+
+plt.xlim(0,40)
+
+plt.xlabel('Frecuencia [Hz]')
+plt.ylabel('PSD')
+
+plt.grid()
+plt.legend()
+
+plt.show()
